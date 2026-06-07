@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3PL Fulfillment Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f4f1ea;--surface:#fdfcf8;--surface2:#eceae2;--border:#dedad0;--border2:#c8c3b5;
+  --text:#1a1916;--muted:#7a7566;--muted2:#aaa89e;
+  --ecom:#1a5c42;--ecom-bg:#e6f2ec;--ecom-mid:#2a8a63;--ecom-border:#b0d9c5;
+  --qerr:#5c2d8a;--qerr-bg:#f0eaf7;--qerr-mid:#7c4ab0;--qerr-border:#cdb8e8;
+  --exc:#9a5c00;--exc-bg:#fdf3e0;--exc-border:#e8c97a;
+  --mono:'DM Mono',monospace;--serif:'Fraunces',serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
+nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 36px;gap:20px}
+.nav-left{display:flex;align-items:center;gap:0}
+.nav-brand{display:flex;align-items:center;gap:12px;padding:20px 0;margin-right:36px;border-right:1px solid var(--border);padding-right:36px}
+.brand-mark{width:34px;height:34px;background:var(--text);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.brand-mark svg{width:16px;height:16px;stroke:#fdfcf8;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.brand-name{font-family:var(--serif);font-size:15px;font-weight:300;letter-spacing:-.01em}
+.brand-name em{font-style:italic;color:var(--muted)}
+.nav-tabs{display:flex;align-items:stretch}
+.nav-tab{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:0 20px;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:color .15s,border-color .15s;height:72px}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--text);border-bottom-color:var(--text)}
+.nav-right{display:flex;align-items:center;gap:16px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.nav-meta{font-size:10px;color:var(--muted2);display:flex;align-items:center;gap:7px}
+
+.wrap{max-width:1280px;margin:0 auto;padding:0 36px}
+.section{padding:32px 0}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.sec-title{font-family:var(--serif);font-size:18px;font-weight:300;letter-spacing:-.01em}
+.sec-title em{font-style:italic;color:var(--muted)}
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted2);font-size:13px;pointer-events:none;line-height:1}
+.search-wrap input{font-family:var(--mono);font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:8px 12px 8px 30px;color:var(--text);outline:none;width:200px;transition:border-color .15s}
+.search-wrap input:focus{border-color:var(--border2)}
+.search-wrap input::placeholder{color:var(--muted2)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:6px 14px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s}
+.pill:hover{border-color:var(--border2);color:var(--text)}
+.pill.active{background:var(--text);color:var(--surface);border-color:var(--text)}
+.pill.p-exc.active{background:var(--exc);color:#fff;border-color:var(--exc)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:840px){.two-col{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.panel-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.p-dot{width:7px;height:7px;border-radius:50%}
+.pd-ecom{background:var(--ecom)}.pd-qerr{background:var(--qerr)}
+.badge{font-size:10px;padding:3px 10px;border-radius:20px}
+.b-ecom{background:var(--ecom-bg);color:var(--ecom);border:1px solid var(--ecom-border)}
+.b-qerr{background:var(--qerr-bg);color:var(--qerr);border:1px solid var(--qerr-border)}
+.tbl-wrap{overflow-x:auto;max-height:460px;overflow-y:auto}
+.tbl-wrap::-webkit-scrollbar{width:3px;height:3px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);text-align:left;padding:9px 18px;background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap}
+thead th.r{text-align:right}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+td{padding:9px 18px;vertical-align:middle}
+td.muted{color:var(--muted);font-size:10px}
+td.r{text-align:right}
+.order-num{font-weight:500;color:var(--text)}
+.exc-badge{display:inline-block;font-size:9px;letter-spacing:.06em;padding:2px 7px;border-radius:3px;background:var(--exc-bg);color:var(--exc);border:1px solid var(--exc-border);vertical-align:middle;margin-left:6px}
+.date-chip{display:inline-block;font-size:10px;padding:2px 8px;border-radius:3px}
+.dc-ecom{background:var(--ecom-bg);color:var(--ecom)}
+.dc-qerr{background:var(--qerr-bg);color:var(--qerr)}
+.dc-none{color:var(--muted2)}
+.row-num{color:var(--muted2);font-size:10px;width:32px}
+.full-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:32px}
+footer{border-top:1px solid var(--border);background:var(--surface);padding:18px 36px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--muted2)}
+.loading-state{text-align:center;padding:60px 20px;color:var(--muted2);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-state{text-align:center;padding:40px 20px;color:var(--exc);font-size:11px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <div class="nav-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="brand-name">3PL Orders <em>fulfilled</em></div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showView('overview',this)">Overview</button>
+      <button class="nav-tab" onclick="showView('ecommerce',this)">Ecommerce</button>
+      <button class="nav-tab" onclick="showView('qerrius',this)">Qerrius</button>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-meta"><div class="live-dot"></div><span id="sync-status">Loading…</span></div>
+  </div>
+</nav>
+
+
+
+<!-- ════ OVERVIEW ════ -->
+<div id="view-overview" class="view">
+<div class="wrap">
+  <div class="section" style="padding-bottom:0">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);margin-bottom:28px">
+      <div style="padding:28px 32px;border-right:1px solid var(--border)">
+        <div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:50%;background:var(--ecom);display:inline-block"></span>Ecommerce 3PL</div>
+        <div style="font-family:var(--serif);font-size:48px;font-weight:300;letter-spacing:-.03em;line-height:1;color:var(--ecom)" id="ov-ecom-hero">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">orders fulfilled</div>
+      </div>
+      <div style="padding:28px 32px;border-right:1px solid var(--border)">
+        <div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:50%;background:var(--qerr);display:inline-block"></span>Qerrius 3PL</div>
+        <div style="font-family:var(--serif);font-size:48px;font-weight:300;letter-spacing:-.03em;line-height:1;color:var(--qerr)" id="ov-qerr-hero">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">orders fulfilled</div>
+      </div>
+      <div style="padding:28px 32px">
+        <div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;display:flex;align-items:center;gap:7px"><span style="width:7px;height:7px;border-radius:50%;background:var(--text);display:inline-block"></span>Combined total</div>
+        <div style="font-family:var(--serif);font-size:48px;font-weight:300;letter-spacing:-.03em;line-height:1;color:var(--text)" id="ov-total-hero">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">orders fulfilled</div>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="sec-head" style="margin-top:8px">
+      <div class="sec-title">All orders <em>per 3PL</em></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" id="ov-search" placeholder="Search order…" oninput="filterOv()"></div>
+        <div class="pills" id="ov-3pl-pills">
+          <button class="pill active" onclick="setOvSrc('both',this)">Both</button>
+          <button class="pill" onclick="setOvSrc('ecom',this)">Ecommerce only</button>
+          <button class="pill" onclick="setOvSrc('qerr',this)">Qerrius only</button>
+        </div>
+        <div class="pills" id="ov-type-pills">
+          <button class="pill active" onclick="setPillFilter('all',this,'ov')">All</button>
+          <button class="pill p-exc" onclick="setPillFilter('exc',this,'ov')">Exchanges</button>
+          <button class="pill" onclick="setPillFilter('dated',this,'ov')">Dated only</button>
+        </div>
+      </div>
+    </div>
+    <div id="ov-both-col" class="two-col">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-label"><div class="p-dot pd-ecom"></div>Ecommerce</div>
+          <span class="badge b-ecom" id="ov-ecom-count">— orders</span>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th style="width:32px">#</th><th>Order</th><th class="r">Date sent</th></tr></thead><tbody id="ov-ecom-tbody"><tr><td colspan="3"><div class="loading-state"><div class="spinner"></div>Loading…</div></td></tr></tbody></table></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-label"><div class="p-dot pd-qerr"></div>Qerrius</div>
+          <span class="badge b-qerr" id="ov-qerr-count">— orders</span>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th style="width:32px">#</th><th>Order</th><th class="r">Date sent</th></tr></thead><tbody id="ov-qerr-tbody"><tr><td colspan="3"><div class="loading-state"><div class="spinner"></div>Loading…</div></td></tr></tbody></table></div>
+      </div>
+    </div>
+    <div id="ov-single-col" style="display:none">
+      <div class="full-panel">
+        <div class="panel-head" id="ov-single-head">
+          <div class="panel-label" id="ov-single-label"></div>
+          <span class="badge" id="ov-single-count"></span>
+        </div>
+        <div class="tbl-wrap" style="max-height:500px"><table><thead><tr><th style="width:32px">#</th><th>Order</th><th class="r">Date sent</th></tr></thead><tbody id="ov-single-tbody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════ ECOMMERCE ════ -->
+<div id="view-ecommerce" class="view" style="display:none">
+<div class="wrap">
+  <!-- INVENTORY -->
+  <div class="section" style="padding-bottom:0" id="inv-section-ecom">
+    <div class="sec-head">
+      <div class="sec-title">Inventory levels <em id="ecom-inv-date">loading…</em></div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" id="einv-search" placeholder="Search SKU…" oninput="filterInv('ecom')"></div>
+        <div style="display:flex;gap:16px;font-size:10px;color:var(--muted);align-items:center;flex-wrap:wrap" id="ecom-inv-stats"></div>
+      </div>
+    </div>
+    <div class="full-panel" style="margin-bottom:0">
+      <div class="tbl-wrap" style="max-height:480px"><table>
+        <thead><tr><th style="min-width:180px">SKU</th><th style="min-width:60px">Size</th><th style="min-width:120px">Color</th><th style="text-align:right;padding-right:18px;min-width:90px">Units on hand</th></tr></thead>
+        <tbody id="einv-tbody"><tr><td colspan="4"><div class="loading-state"><div class="spinner"></div>Loading inventory…</div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+  <!-- ORDERS -->
+  <div class="section">
+    <div class="sec-head">
+      <div class="sec-title">Ecommerce <em>all orders</em></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" id="e-search" placeholder="Search order…" oninput="filterE()"></div>
+        <div class="pills">
+          <button class="pill active" onclick="setPillFilter('all',this,'e')">All</button>
+          <button class="pill p-exc" onclick="setPillFilter('exc',this,'e')">Exchanges</button>
+          <button class="pill" onclick="setPillFilter('dated',this,'e')">Dated only</button>
+        </div>
+      </div>
+    </div>
+    <div class="full-panel">
+      <div class="tbl-wrap" style="max-height:600px"><table><thead><tr><th style="width:40px">#</th><th>Order number</th><th class="r">Date sent</th></tr></thead><tbody id="e-tbody"><tr><td colspan="3"><div class="loading-state"><div class="spinner"></div>Loading…</div></td></tr></tbody></table></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════ QERRIUS ════ -->
+<div id="view-qerrius" class="view" style="display:none">
+<div class="wrap">
+  <!-- INVENTORY -->
+  <div class="section" style="padding-bottom:0" id="inv-section-qerr">
+    <div class="sec-head">
+      <div class="sec-title">Inventory levels <em id="qerr-inv-date">loading…</em></div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" id="qinv-search" placeholder="Search SKU…" oninput="filterInv('qerr')"></div>
+        <div style="display:flex;gap:16px;font-size:10px;color:var(--muted);align-items:center;flex-wrap:wrap" id="qerr-inv-stats"></div>
+      </div>
+    </div>
+    <div class="full-panel" style="margin-bottom:0">
+      <div class="tbl-wrap" style="max-height:480px"><table>
+        <thead><tr><th style="min-width:180px">SKU</th><th style="min-width:60px">Size</th><th style="min-width:120px">Color</th><th style="text-align:right;padding-right:18px;min-width:90px">Units on hand</th></tr></thead>
+        <tbody id="qinv-tbody"><tr><td colspan="4"><div class="loading-state"><div class="spinner"></div>Loading inventory…</div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+  <!-- ORDERS -->
+  <div class="section">
+    <div class="sec-head">
+      <div class="sec-title">Qerrius <em>all orders</em></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <div class="search-wrap"><span class="search-icon">⌕</span><input type="text" id="q-search" placeholder="Search order…" oninput="filterQ()"></div>
+        <div class="pills">
+          <button class="pill active" onclick="setPillFilter('all',this,'q')">All</button>
+          <button class="pill p-exc" onclick="setPillFilter('exc',this,'q')">Exchanges</button>
+          <button class="pill" onclick="setPillFilter('dated',this,'q')">Dated only</button>
+        </div>
+      </div>
+    </div>
+    <div class="full-panel">
+      <div class="tbl-wrap" style="max-height:600px"><table><thead><tr><th style="width:40px">#</th><th>Order number</th><th class="r">Date sent</th></tr></thead><tbody id="q-tbody"><tr><td colspan="3"><div class="loading-state"><div class="spinner"></div>Loading…</div></td></tr></tbody></table></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>
+  <span>3PL Fulfillment Dashboard · Live from Google Sheets</span>
+  <span id="footer-counts">Loading…</span>
+</footer>
+
+<script>
+// ── SHEET URLS (via Apps Script proxy) ──────────────────────────
+const PROXY_BASE     = 'https://script.google.com/macros/s/AKfycbxqkkORcou9RG75IupFi_c6Vy0TiSUA7rhAQzmustZKVCmL96t68I8JwHul7_8_iDJR/exec';
+const SHEET_ECOM_INV  = PROXY_BASE + '?gid=1203550555';
+const SHEET_QERR_INV  = PROXY_BASE + '?gid=690974035';
+const SHEET_FULFIL    = PROXY_BASE + '?gid=1214865587';
+
+// ── STATE ────────────────────────────────────────────────────────
+let ECOM = [], QERR = [];
+let ECOM_INV = [], QERR_INV = [];
+let ovFilter = 'all', eFilter = 'all', qFilter = 'all', ovSrc = 'both';
+
+// ── FETCH ────────────────────────────────────────────────────────
+async function fetchCSV(url, retries = 4) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 800));
+      const res = await fetch(url);
+      if (res.ok) {
+        const text = await res.text();
+        // Handle JSON wrapper (Apps Script JSON mime type)
+        if (text.trim().startsWith('{')) {
+          const json = JSON.parse(text);
+          if (json.data && json.data.trim().length > 10) return json.data;
+        }
+        if (text.trim().length > 10) return text;
+      }
+    } catch(e) {}
+  }
+  throw new Error('Could not load data after ' + retries + ' attempts.');
+}
+
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  for (const line of lines) {
+    const cols = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    cols.push(cur.trim());
+    rows.push(cols);
+  }
+  return rows;
+}
+
+// ── PARSE FULFILLMENT ────────────────────────────────────────────
+function parseFulfillment(csv) {
+  const rows = parseCSV(csv);
+  const eRows = [], qRows = [];
+
+  // Valid order: digits, #digits, digits-EXC, or alphanumeric codes (like Q72HB353D3)
+  // Rejects country names, blank cells, header rows
+  function isValidOrder(s) {
+    if (!s) return false;
+    const clean = s.replace(/^#/, '').trim();
+    if (!clean || clean === 'Order Number') return false;
+    // Must start with a digit OR be an all-caps alphanumeric code
+    return /^\d+([-]\w+)?$/.test(clean) || /^[A-Z0-9]{5,}$/.test(clean);
+  }
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    const en = (r[0]||'').trim();
+    const ed = (r[3]||'').trim();
+    if (isValidOrder(en)) eRows.push({order: en, date: ed !== 'nan' ? ed : ''});
+    const qn = (r[5]||'').replace(/\r/g,'').trim();
+    const qd = (r[8]||'').replace('Sent ','').trim();
+    if (isValidOrder(qn)) qRows.push({order: qn, date: qd !== 'nan' ? qd : ''});
+  }
+
+  // Back-fill dates from merged cells (date appears on last row of group)
+  function backfill(rows) {
+    const dated = rows.map((r,i) => r.date ? i : -1).filter(i => i >= 0);
+    const result = new Array(rows.length).fill('');
+    let prev = -1;
+    for (const endIdx of dated) {
+      for (let i = prev + 1; i <= endIdx; i++) result[i] = rows[endIdx].date;
+      prev = endIdx;
+    }
+    return rows.map((r, i) => ({ order: addHash(r.order), date: result[i] || '' }));
+  }
+
+  return { ecom: backfill(eRows), qerr: backfill(qRows) };
+}
+
+function addHash(o) { return o.startsWith('#') ? o : '#' + o; }
+
+// ── PARSE INVENTORY ──────────────────────────────────────────────
+function parseInventory(csv) {
+  const rows = parseCSV(csv);
+  if (!rows.length) return { date: '', rows: [] };
+
+  const header = rows[0].map(h => (h||'').trim().toLowerCase());
+
+  // Detect column positions from header names
+  const skuCol   = header.findIndex(h => h.includes('sku') || h === 'skus');
+  const barcodeCol = header.findIndex(h => h.includes('barcode'));
+  const sizeCol  = header.findIndex(h => h.includes('size'));
+  const colorCol = header.findIndex(h => h.includes('color') || h.includes('colour'));
+
+  // Date columns: anything that looks like a date (contains /)
+  // or is a column after color that isn't sku/barcode/size/color
+  const knownCols = new Set([skuCol, barcodeCol, sizeCol, colorCol].filter(i => i >= 0));
+  const dateCols = [];
+  for (let c = 0; c < header.length; c++) {
+    if (knownCols.has(c)) continue;
+    const h = header[c];
+    if (h && h !== '' && (h.includes('/') || /^\d{1,2}[\/-]\d/.test(h))) {
+      dateCols.push({ col: c, label: rows[0][c].trim() });
+    }
+  }
+
+  // If no date cols found by date pattern, take any non-known non-empty cols
+  if (!dateCols.length) {
+    for (let c = 0; c < header.length; c++) {
+      if (knownCols.has(c)) continue;
+      if (header[c] && header[c] !== '') {
+        dateCols.push({ col: c, label: rows[0][c].trim() });
+      }
+    }
+  }
+
+  const latestDateCol = dateCols.length ? dateCols[dateCols.length - 1] : null;
+  const dateLabel = latestDateCol ? latestDateCol.label : 'latest';
+
+  const result = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    const sku = skuCol >= 0 ? (r[skuCol]||'').trim() : '';
+    if (!sku || sku.toLowerCase() === 'skus') continue;
+    const size  = sizeCol >= 0  ? (r[sizeCol]||'').trim().replace(/^nan$/i,'')  : '';
+    const color = colorCol >= 0 ? (r[colorCol]||'').trim() : '';
+    // For Ecommerce which has no stock numbers yet, default to 1 per variant
+    const stock = latestDateCol ? (parseInt(r[latestDateCol.col]) || 0) : 1;
+    result.push({ sku, size, color, stock });
+  }
+
+  return { date: dateLabel, rows: result };
+}
+
+// ── COLOR CHIPS ──────────────────────────────────────────────────
+const COLOR_HEX = {
+  'Gold':'#c9990a','Silver':'#9090a0','Rose Gold':'#c47a5a','Purple':'#7c3fbf',
+  'Multicolor':'linear-gradient(135deg,#f59e0b,#ec4899,#3b82f6)','Black':'#2a2a2a',
+  'Dusty Pink':'#c47a8a','Marbled Indigo':'#4455bb','Turquoise Blue':'#0e8ab0',
+  'Orange':'#d96010','Beige':'#c4a070','Blue':'#2255bb','White':'#c4c0b6','Floral':'#cc4488'
+};
+function chip(color) {
+  const bg = COLOR_HEX[color] || '#888';
+  return `<span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${bg};border:1px solid rgba(0,0,0,.15);flex-shrink:0"></span>${color}</span>`;
+}
+function stockStyle(v) {
+  if (v === 0) return 'color:var(--muted2)';
+  if (v <= 5)  return 'color:var(--exc);font-weight:500';
+  return 'color:var(--text);font-weight:500';
+}
+
+// ── RENDER INVENTORY TABLE ───────────────────────────────────────
+function renderInvTable(rows, tbodyId, src) {
+  const tbody = document.getElementById(tbodyId);
+  const term = (document.getElementById(src === 'ecom' ? 'einv-search' : 'qinv-search').value || '').toLowerCase();
+
+  const filtered = rows.filter(r =>
+    !term ||
+    r.sku.toLowerCase().includes(term) ||
+    r.color.toLowerCase().includes(term) ||
+    r.size.toLowerCase().includes(term)
+  );
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--muted2)">No results</td></tr>`;
+    return;
+  }
+
+  let html = '';
+  let prevSku = null;
+  for (const r of filtered) {
+    const isNewSku = r.sku !== prevSku;
+    const skuCell = isNewSku
+      ? `<td style="vertical-align:top;padding:10px 18px;border-right:1px solid var(--border);font-size:11px;max-width:220px;white-space:normal;line-height:1.4;color:var(--text)">${r.sku}</td>`
+      : `<td style="border-right:1px solid var(--border)"></td>`;
+    const topBorder = isNewSku ? 'border-top:2px solid var(--border2)' : '';
+    const sizeHtml = r.size ? `<span style="color:var(--muted);font-size:10px">${r.size}</span>` : `<span style="color:var(--muted2);font-size:10px">—</span>`;
+    html += `<tr style="${topBorder}">
+      ${skuCell}
+      <td style="padding:10px 14px;font-size:11px">${sizeHtml}</td>
+      <td style="padding:10px 14px;font-size:11px">${chip(r.color)}</td>
+      <td style="padding:10px 18px;text-align:right;font-variant-numeric:tabular-nums"><span style="${stockStyle(r.stock)}">${r.stock}</span></td>
+    </tr>`;
+    prevSku = r.sku;
+  }
+  tbody.innerHTML = html;
+}
+
+function filterInv(src) {
+  const rows = src === 'ecom' ? ECOM_INV : QERR_INV;
+  renderInvTable(rows, src === 'ecom' ? 'einv-tbody' : 'qinv-tbody', src);
+}
+
+// ── RENDER ORDER TABLE ───────────────────────────────────────────
+function isExc(o) { return String(o).toUpperCase().includes('EXC'); }
+
+function renderTable(rows, tbodyId, src, filter, search) {
+  const tbody = document.getElementById(tbodyId);
+  const filtered = rows.filter(r => {
+    if (filter === 'exc' && !isExc(r.order)) return false;
+    if (filter === 'dated' && !r.date) return false;
+    if (search && !r.order.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+  const cls = src === 'ecom' ? 'dc-ecom' : 'dc-qerr';
+  tbody.innerHTML = filtered.map((r, i) => `
+    <tr>
+      <td class="row-num muted">${i + 1}</td>
+      <td class="order-num">${r.order}${isExc(r.order) ? '<span class="exc-badge">EXC</span>' : ''}</td>
+      <td class="r">${r.date ? `<span class="date-chip ${cls}">${r.date}</span>` : '<span class="dc-none">—</span>'}</td>
+    </tr>`).join('') || `<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--muted2);font-size:11px">No orders match</td></tr>`;
+  return filtered.length;
+}
+
+// ── RENDER ALL ───────────────────────────────────────────────────
+function renderOv() {
+  const search = document.getElementById('ov-search').value;
+  if (ovSrc === 'both') {
+    const ec = renderTable(ECOM, 'ov-ecom-tbody', 'ecom', ovFilter, search);
+    const qc = renderTable(QERR, 'ov-qerr-tbody', 'qerr', ovFilter, search);
+    document.getElementById('ov-ecom-count').textContent = ec + ' orders';
+    document.getElementById('ov-qerr-count').textContent = qc + ' orders';
+  } else if (ovSrc === 'ecom') {
+    const c = renderTable(ECOM, 'ov-single-tbody', 'ecom', ovFilter, search);
+    document.getElementById('ov-single-label').innerHTML = '<div class="p-dot pd-ecom"></div>Ecommerce';
+    document.getElementById('ov-single-count').className = 'badge b-ecom';
+    document.getElementById('ov-single-count').textContent = c + ' orders';
+  } else {
+    const c = renderTable(QERR, 'ov-single-tbody', 'qerr', ovFilter, search);
+    document.getElementById('ov-single-label').innerHTML = '<div class="p-dot pd-qerr"></div>Qerrius';
+    document.getElementById('ov-single-count').className = 'badge b-qerr';
+    document.getElementById('ov-single-count').textContent = c + ' orders';
+  }
+}
+function renderE() { renderTable(ECOM, 'e-tbody', 'ecom', eFilter, document.getElementById('e-search').value); }
+function renderQ() { renderTable(QERR, 'q-tbody', 'qerr', qFilter, document.getElementById('q-search').value); }
+
+function filterOv() { renderOv(); }
+function filterE()  { renderE(); }
+function filterQ()  { renderQ(); }
+
+// ── FILTERS ──────────────────────────────────────────────────────
+function setPillFilter(f, btn, scope) {
+  btn.closest('.pills').querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  if (scope === 'ov') { ovFilter = f; renderOv(); }
+  if (scope === 'e')  { eFilter  = f; renderE(); }
+  if (scope === 'q')  { qFilter  = f; renderQ(); }
+}
+
+function setOvSrc(src, btn) {
+  ovSrc = src;
+  document.querySelectorAll('#ov-3pl-pills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const both   = document.getElementById('ov-both-col');
+  const single = document.getElementById('ov-single-col');
+  if (src === 'both') { both.style.display = ''; single.style.display = 'none'; }
+  else                { both.style.display = 'none'; single.style.display = 'block'; }
+  renderOv();
+}
+
+// ── VIEWS ────────────────────────────────────────────────────────
+function showView(v, btn) {
+  document.querySelectorAll('.view').forEach(el => el.style.display = 'none');
+  document.getElementById('view-' + v).style.display = 'block';
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+async function init() {
+  try {
+    document.getElementById('sync-status').textContent = 'Fetching data…';
+
+    // Sequential fetches — Apps Script handles one at a time more reliably
+    document.getElementById('sync-status').textContent = 'Loading fulfillment…';
+    const fulfilCSV = await fetchCSV(SHEET_FULFIL);
+    document.getElementById('sync-status').textContent = 'Loading Ecommerce inventory…';
+    const eInvCSV   = await fetchCSV(SHEET_ECOM_INV);
+    document.getElementById('sync-status').textContent = 'Loading Qerrius inventory…';
+    const qInvCSV   = await fetchCSV(SHEET_QERR_INV);
+
+    // Parse fulfillment orders
+    const { ecom, qerr } = parseFulfillment(fulfilCSV);
+    ECOM = ecom;
+    QERR = qerr;
+
+    // Parse inventory
+    const eInv = parseInventory(eInvCSV);
+    const qInv = parseInventory(qInvCSV);
+    ECOM_INV = eInv.rows;
+    QERR_INV = qInv.rows;
+
+    // Hero numbers
+    const eExc = ECOM.filter(r => isExc(r.order)).length;
+    const qExc = QERR.filter(r => isExc(r.order)).length;
+    document.getElementById('h-ecom-total').textContent = ECOM.length;
+    document.getElementById('h-qerr-total').textContent = QERR.length;
+    document.getElementById('h-ecom-exc').textContent = eExc;
+    document.getElementById('h-qerr-exc').textContent = qExc;
+
+    // Overview totals
+    document.getElementById('ov-ecom-hero').textContent = ECOM.length;
+    document.getElementById('ov-qerr-hero').textContent = QERR.length;
+    document.getElementById('ov-total-hero').textContent = ECOM.length + QERR.length;
+
+    // Inventory stats
+    const eTotal = ECOM_INV.reduce((s,r) => s + r.stock, 0);
+    const qTotal = QERR_INV.reduce((s,r) => s + r.stock, 0);
+    const eInStock = ECOM_INV.filter(r => r.stock > 0).length;
+    const qInStock = QERR_INV.filter(r => r.stock > 0).length;
+    const eOos = ECOM_INV.filter(r => r.stock === 0).length;
+    const qOos = QERR_INV.filter(r => r.stock === 0).length;
+
+    document.getElementById('ecom-inv-date').textContent = `as of ${eInv.date}`;
+    document.getElementById('qerr-inv-date').textContent = `as of ${qInv.date}`;
+    document.getElementById('ecom-inv-stats').innerHTML = `<span><strong style="color:var(--text)">${eTotal.toLocaleString()}</strong> total units</span><span><strong style="color:var(--ecom)">${eInStock}</strong> variants in stock</span><span><strong style="color:var(--exc)">${eOos}</strong> out of stock</span>`;
+    document.getElementById('qerr-inv-stats').innerHTML = `<span><strong style="color:var(--text)">${qTotal.toLocaleString()}</strong> total units</span><span><strong style="color:var(--qerr)">${qInStock}</strong> variants in stock</span><span><strong style="color:var(--exc)">${qOos}</strong> out of stock</span>`;
+
+    // Render tables
+    renderOv();
+    renderE();
+    renderQ();
+    renderInvTable(ECOM_INV, 'einv-tbody', 'ecom');
+    renderInvTable(QERR_INV, 'qinv-tbody', 'qerr');
+
+    // Status
+    const now = new Date();
+    const time = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('sync-status').textContent = `Live · Updated ${time}`;
+    document.getElementById('footer-counts').textContent = `Ecommerce: ${ECOM.length} orders · Qerrius: ${QERR.length} orders · Total: ${ECOM.length + QERR.length}`;
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById('sync-status').textContent = 'Error loading data';
+    ['ov-ecom-tbody','ov-qerr-tbody','e-tbody','q-tbody','einv-tbody','qinv-tbody'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<tr><td colspan="4" class="error-state">⚠ Could not load data. Make sure your Google Sheet is published publicly.</td></tr>`;
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>
