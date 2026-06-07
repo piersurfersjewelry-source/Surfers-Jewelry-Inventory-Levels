@@ -282,8 +282,8 @@ footer{border-top:1px solid var(--border);background:var(--surface);padding:18px
 <script>
 // ── SHEET URLS (via Apps Script proxy) ──────────────────────────
 const PROXY_BASE     = 'https://script.google.com/macros/s/AKfycbyWoQXANqrfJSZEba8xJ8Jy_nJ4P2weRliMdPSd_r0MXhu9qTDzJNSHrRfnkPi0-ws6/exec';
-const SHEET_ECOM_INV  = PROXY_BASE + '?gid=690974035';
-const SHEET_QERR_INV  = PROXY_BASE + '?gid=1203550555';
+const SHEET_ECOM_INV  = PROXY_BASE + '?gid=1203550555';
+const SHEET_QERR_INV  = PROXY_BASE + '?gid=690974035';
 const SHEET_FULFIL    = PROXY_BASE + '?gid=1214865587';
 
 // ── STATE ────────────────────────────────────────────────────────
@@ -326,14 +326,24 @@ function parseFulfillment(csv) {
   const rows = parseCSV(csv);
   const eRows = [], qRows = [];
 
+  // Valid order: digits, #digits, digits-EXC, or alphanumeric codes (like Q72HB353D3)
+  // Rejects country names, blank cells, header rows
+  function isValidOrder(s) {
+    if (!s) return false;
+    const clean = s.replace(/^#/, '').trim();
+    if (!clean || clean === 'Order Number') return false;
+    // Must start with a digit OR be an all-caps alphanumeric code
+    return /^\d+([-]\w+)?$/.test(clean) || /^[A-Z0-9]{5,}$/.test(clean);
+  }
+
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     const en = (r[0]||'').trim();
     const ed = (r[3]||'').trim();
-    if (en && en !== 'Order Number') eRows.push({order: en, date: ed !== 'nan' ? ed : ''});
+    if (isValidOrder(en)) eRows.push({order: en, date: ed !== 'nan' ? ed : ''});
     const qn = (r[5]||'').replace(/\r/g,'').trim();
     const qd = (r[8]||'').replace('Sent ','').trim();
-    if (qn && qn !== 'Order Number') qRows.push({order: qn, date: qd !== 'nan' ? qd : ''});
+    if (isValidOrder(qn)) qRows.push({order: qn, date: qd !== 'nan' ? qd : ''});
   }
 
   // Back-fill dates from merged cells (date appears on last row of group)
@@ -358,20 +368,34 @@ function parseInventory(csv) {
   const rows = parseCSV(csv);
   if (!rows.length) return { date: '', rows: [] };
 
-  // Header row: SKUs, Sizes, Color, date1, date2, ...
-  // OR: SKUs, Shopify Barcode, Sizes, Color, date1, ...
-  const header = rows[0];
-  const hasBarcode = header[1] && header[1].toLowerCase().includes('barcode');
-  const skuCol   = 0;
-  const sizeCol  = hasBarcode ? 2 : 1;
-  const colorCol = hasBarcode ? 3 : 2;
-  const dateStartCol = hasBarcode ? 4 : 3;
+  const header = rows[0].map(h => (h||'').trim().toLowerCase());
 
-  // Find date columns (anything after Color that isn't empty)
+  // Detect column positions from header names
+  const skuCol   = header.findIndex(h => h.includes('sku') || h === 'skus');
+  const barcodeCol = header.findIndex(h => h.includes('barcode'));
+  const sizeCol  = header.findIndex(h => h.includes('size'));
+  const colorCol = header.findIndex(h => h.includes('color') || h.includes('colour'));
+
+  // Date columns: anything that looks like a date (contains /)
+  // or is a column after color that isn't sku/barcode/size/color
+  const knownCols = new Set([skuCol, barcodeCol, sizeCol, colorCol].filter(i => i >= 0));
   const dateCols = [];
-  for (let c = dateStartCol; c < header.length; c++) {
-    const h = (header[c]||'').trim();
-    if (h && h !== '') dateCols.push({ col: c, label: h });
+  for (let c = 0; c < header.length; c++) {
+    if (knownCols.has(c)) continue;
+    const h = header[c];
+    if (h && h !== '' && (h.includes('/') || /^\d{1,2}[\/-]\d/.test(h))) {
+      dateCols.push({ col: c, label: rows[0][c].trim() });
+    }
+  }
+
+  // If no date cols found by date pattern, take any non-known non-empty cols
+  if (!dateCols.length) {
+    for (let c = 0; c < header.length; c++) {
+      if (knownCols.has(c)) continue;
+      if (header[c] && header[c] !== '') {
+        dateCols.push({ col: c, label: rows[0][c].trim() });
+      }
+    }
   }
 
   const latestDateCol = dateCols.length ? dateCols[dateCols.length - 1] : null;
@@ -380,10 +404,11 @@ function parseInventory(csv) {
   const result = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const sku = (r[skuCol]||'').trim();
-    if (!sku || sku === 'SKUs') continue;
-    const size  = (r[sizeCol]||'').trim().replace(/^nan$/i,'');
-    const color = (r[colorCol]||'').trim();
+    const sku = skuCol >= 0 ? (r[skuCol]||'').trim() : '';
+    if (!sku || sku.toLowerCase() === 'skus') continue;
+    const size  = sizeCol >= 0  ? (r[sizeCol]||'').trim().replace(/^nan$/i,'')  : '';
+    const color = colorCol >= 0 ? (r[colorCol]||'').trim() : '';
+    // For Ecommerce which has no stock numbers yet, default to 1 per variant
     const stock = latestDateCol ? (parseInt(r[latestDateCol.col]) || 0) : 1;
     result.push({ sku, size, color, stock });
   }
