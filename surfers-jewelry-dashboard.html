@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
+<title>Surfers Jewelry Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#ffffff;--bg2:#f5f5f3;--bg3:#eeede8;--text:#1a1a18;--text2:#5f5e5a;--text3:#888780;--border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);--blue50:#E6F1FB;--blue400:#378ADD;--blue800:#0C447C;--teal50:#E1F5EE;--teal400:#1D9E75;--teal800:#085041;--red50:#FCEBEB;--red400:#E24B4A;--red800:#791F1F;--amber50:#FAEEDA;--amber400:#BA7517;--amber800:#633806;--purple50:#EEEDFE;--purple400:#7F77DD;--purple800:#3C3489;--orange400:#E8692A;--radius:8px;--radius-lg:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#2a2a28;--bg3:#333330;--text:#f0ede8;--text2:#b4b2a9;--text3:#73726c;--border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.22);--blue400:#85B7EB;--teal400:#5DCAA5;--red400:#F09595;--amber400:#EF9F27;--purple400:#AFA9EC}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.app{max-width:1160px;margin:0 auto;padding:24px 20px}
+.header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:16px}
+.header-left h1{font-size:20px;font-weight:500}
+.header-left p{font-size:13px;color:var(--text2);margin-top:3px}
+.header-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.refresh-btn{display:flex;align-items:center;gap:7px;padding:8px 14px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px}
+.refresh-btn:hover{background:var(--bg2)}
+.refresh-btn.loading svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.last-updated{font-size:11px;color:var(--text3)}
+
+/* Filter bar */
+.filter-bar{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding:12px 16px;background:var(--bg2);border-radius:var(--radius-lg);border:0.5px solid var(--border);flex-wrap:wrap}
+.filter-group{display:flex;align-items:center;gap:8px}
+.filter-label{font-size:12px;color:var(--text2);white-space:nowrap}
+.filter-select{padding:5px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px;cursor:pointer}
+.filter-input{padding:5px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px;width:180px}
+.filter-divider{width:1px;height:20px;background:var(--border);margin:0 4px}
+
+/* Sections */
+.section{margin-bottom:32px}
+.section-title{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px}
+
+/* Metrics */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:14px 16px}
+.metric-label{font-size:12px;color:var(--text2);margin-bottom:4px}
+.metric-value{font-size:24px;font-weight:500}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.good{color:var(--teal400)}.warn{color:var(--amber400)}.bad{color:var(--red400)}
+
+/* Channel cards */
+.channel-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:640px){.channel-grid{grid-template-columns:1fr}}
+.channel-card{border-radius:var(--radius-lg);padding:20px;border:0.5px solid var(--border)}
+.channel-card.ecomm{border-color:var(--blue400);background:var(--blue50)}
+.channel-card.qerrius{border-color:var(--purple400);background:var(--purple50)}
+@media(prefers-color-scheme:dark){
+  .channel-card.ecomm{background:#042C53}.channel-card.qerrius{background:#26215C}
+}
+.channel-name{font-size:13px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.channel-dot{width:8px;height:8px;border-radius:50%}
+.channel-stat{font-size:28px;font-weight:500;margin-bottom:4px}
+.channel-sub{font-size:12px;color:var(--text2)}
+.channel-dates{margin-top:12px;font-size:12px;color:var(--text2)}
+.channel-dates span{display:inline-block;margin-right:8px;margin-top:4px;padding:2px 8px;background:var(--bg);border-radius:20px;border:0.5px solid var(--border)}
+
+/* Cards & tables */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:10px 14px;text-align:left;font-weight:500;font-size:12px;color:var(--text2);border-bottom:0.5px solid var(--border);background:var(--bg2);white-space:nowrap;position:sticky;top:0;z-index:1}
+td{padding:10px 14px;border-bottom:0.5px solid var(--border);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg2)}
+.stock-bar{height:6px;border-radius:3px;background:var(--teal400);display:inline-block}
+.stock-zero{color:var(--red400);font-weight:500}
+.stock-low{color:var(--amber400);font-weight:500}
+.stock-ok{color:var(--teal400)}
+.alert-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:var(--red50);color:var(--red800)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.two-col{grid-template-columns:1fr}}
+.chart-wrap{padding:16px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;font-size:12px;color:var(--text2)}
+.ldot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
+.loading-state{padding:48px 20px;text-align:center;color:var(--text3);font-size:13px}
+.spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--blue400);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+.error-banner{background:var(--red50);border:0.5px solid var(--red400);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--red800)}
+.tab-row{display:flex;gap:4px;margin-bottom:20px;border-bottom:0.5px solid var(--border);padding-bottom:0}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;border-radius:var(--radius) var(--radius) 0 0;color:var(--text2);border:0.5px solid transparent;margin-bottom:-1px}
+.tab.active{background:var(--bg);border-color:var(--border);border-bottom-color:var(--bg);color:var(--text);font-weight:500}
+.tab:hover:not(.active){background:var(--bg2)}
+.velocity-pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.vel-fast{background:var(--teal50);color:var(--teal800)}
+.vel-slow{background:var(--amber50);color:var(--amber800)}
+.vel-zero{background:var(--bg2);color:var(--text3)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <div class="header-left">
+    <h1>Surfers Jewelry — Inventory & Fulfillment</h1>
+    <p id="period-label">Loading data from Google Sheets…</p>
+  </div>
+  <div class="header-right">
+    <span class="last-updated" id="last-updated"></span>
+    <button class="refresh-btn" id="refresh-btn" onclick="fetchAll()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<div class="tab-row">
+  <div class="tab active" onclick="showTab('overview')">Overview</div>
+  <div class="tab" onclick="showTab('qerrius')">Qerrius Inventory</div>
+  <div class="tab" onclick="showTab('ecomm')">Ecommerce Inventory</div>
+  <div class="tab" onclick="showTab('fulfillment')">Fulfillment Log</div>
+</div>
+
+<div id="filter-bar" class="filter-bar" style="display:none">
+  <div class="filter-group">
+    <span class="filter-label">Search SKU</span>
+    <input class="filter-input" id="sku-search" type="text" placeholder="e.g. Bracelet, Ring…" oninput="applyFilters()">
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group">
+    <span class="filter-label">Color</span>
+    <select class="filter-select" id="color-filter" onchange="applyFilters()"><option value="All">All colors</option></select>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group">
+    <span class="filter-label">Stock</span>
+    <select class="filter-select" id="stock-filter" onchange="applyFilters()">
+      <option value="All">All</option>
+      <option value="zero">Zero stock only</option>
+      <option value="low">Low stock (≤10)</option>
+      <option value="ok">In stock</option>
+    </select>
+  </div>
+</div>
+
+<div id="content">
+  <div class="loading-state"><div class="spinner"></div>Fetching live data from Google Sheets…</div>
+</div>
+
+</div>
+<script>
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbzyfB8KiidaGYeihdGV0uJ4FBzqdEN2KZ21rJEwgcGPSf1EszReqFquMcNUNaoFS9I-/exec';
+const FULFILLMENT_URL=SCRIPT_URL+'?sheet=fulfillment';
+const QERRIUS_URL=SCRIPT_URL+'?sheet=qerrius';
+const ECOMM_URL=SCRIPT_URL+'?sheet=ecomm';
+
+let qerrData=[],ecommData=[],fulfillData={ecomm:[],qerrius:[]};
+let activeTab='overview';
+let CHARTS={};
+
+// ---------- FETCH ----------
+async function fetchAll(){
+  const btn=document.getElementById('refresh-btn');
+  btn.classList.add('loading');
+  showLoading();
+  try{
+    const [fres,qres,eres]=await Promise.all([
+      fetch(FULFILLMENT_URL),
+      fetch(QERRIUS_URL),
+      fetch(ECOMM_URL)
+    ]);
+    const [fcsv,qcsv,ecsv]=await Promise.all([fres.text(),qres.text(),eres.text()]);
+
+    // validate — if response is HTML (redirect), it's not real CSV
+    const isCSV=s=>s.trim().length>0&&!s.trim().startsWith('<!');
+    if(!isCSV(qcsv)||!isCSV(ecsv)||!isCSV(fcsv)){
+      showUploadFallback('Google Sheets returned an unexpected response. Please upload your CSV files manually below.');
+      btn.classList.remove('loading');return;
+    }
+
+    fulfillData=parseFulfillment(fcsv);
+    qerrData=parseInventory(qcsv);
+    ecommData=parseInventory(ecsv);
+
+    if(!qerrData.length&&!ecommData.length&&!fulfillData.ecomm.length&&!fulfillData.qerrius.length){
+      showUploadFallback('Data fetched but nothing could be parsed. Please upload your CSV files manually below.');
+      btn.classList.remove('loading');return;
+    }
+
+    document.getElementById('last-updated').textContent='Updated '+new Date().toLocaleTimeString();
+    document.getElementById('period-label').textContent='Live data · Qerrius & Ecommerce';
+    populateColorFilter();
+    renderTab();
+  }catch(e){
+    showUploadFallback('Could not reach Google Sheets ('+e.message+'). Please upload your CSV files manually below.');
+  }
+  btn.classList.remove('loading');
+}
+
+function showUploadFallback(msg){
+  document.getElementById('content').innerHTML=`
+    <div class="error-banner" style="margin-bottom:20px">${msg}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      ${uploadCard('Fulfillment CSV','fulfillment-upload','fulfillment')}
+      ${uploadCard('Qerrius Inventory CSV','qerrius-upload','qerrius')}
+      ${uploadCard('Ecommerce Inventory CSV','ecomm-upload','ecomm')}
+    </div>`;
+  document.getElementById('fulfillment-upload').addEventListener('change',e=>handleUpload(e,'fulfillment'));
+  document.getElementById('qerrius-upload').addEventListener('change',e=>handleUpload(e,'qerrius'));
+  document.getElementById('ecomm-upload').addEventListener('change',e=>handleUpload(e,'ecomm'));
+}
+
+function uploadCard(label,id,type){
+  return`<label for="${id}" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;border:1.5px dashed var(--border2);border-radius:var(--radius-lg);cursor:pointer;background:var(--bg2);text-align:center">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <span style="font-size:13px;font-weight:500">${label}</span>
+    <span style="font-size:11px;color:var(--text3)" id="${id}-status">Click to upload</span>
+    <input type="file" id="${id}" accept=".csv" style="display:none">
+  </label>`;
+}
+
+let _uploads={fulfillment:null,qerrius:null,ecomm:null};
+function handleUpload(e,type){
+  const f=e.target.files[0];if(!f)return;
+  const lbl=document.getElementById(type+'-upload-status');
+  if(lbl)lbl.textContent='Reading…';
+  const r=new FileReader();
+  r.onload=ev=>{
+    const csv=ev.target.result;
+    if(type==='fulfillment')fulfillData=parseFulfillment(csv);
+    else if(type==='qerrius')qerrData=parseInventory(csv);
+    else if(type==='ecomm')ecommData=parseInventory(csv);
+    _uploads[type]=true;
+    if(lbl)lbl.textContent='✓ Loaded';
+    if(_uploads.fulfillment&&_uploads.qerrius&&_uploads.ecomm){
+      document.getElementById('last-updated').textContent='Updated '+new Date().toLocaleTimeString();
+      document.getElementById('period-label').textContent='Manual upload · Qerrius & Ecommerce';
+      populateColorFilter();
+      renderTab();
+    }
+  };
+  r.readAsText(f);
+}
+
+function showLoading(){
+  Object.values(CHARTS).forEach(c=>{try{c.destroy();}catch(e){}});CHARTS={};
+  document.getElementById('content').innerHTML='<div class="loading-state"><div class="spinner"></div>Loading…</div>';
+}
+
+// ---------- PARSE FULFILLMENT ----------
+// Sheet structure:
+// Row 0: "Ecommerce,,,,, Qerrius,,,,,"
+// Row 1: "Order Number, Country, Notes, Date Sent,, Order Number, Country, Notes, Date Sent,,"
+// Row 2+: data — Ecomm cols 0-3, Qerrius cols 5-8
+// Date Sent is SPARSE — only on first order of each batch, carry forward
+function parseFulfillment(csv){
+  const lines=csv.trim().split('\n').filter(l=>l.trim());
+  const ecomm=[];const qerrius=[];
+  let lastEDate=null, lastQDate=null;
+  // start at row 2 (skip section header + col header)
+  for(let i=2;i<lines.length;i++){
+    const v=splitCSV(lines[i]);
+    // ---- Ecommerce: col0=order, col3=date ----
+    const eOrder=(v[0]||'').trim().replace(/\s+/g,'');
+    const eDateRaw=(v[3]||'').trim();
+    if(eDateRaw)lastEDate=eDateRaw;
+    if(eOrder&&eOrder!=='OrderNumber'){
+      ecomm.push({order:eOrder,dateRaw:lastEDate||'',date:parseDate(lastEDate)});
+    }
+    // ---- Qerrius: col5=order, col8=date ----
+    const qOrder=(v[5]||'').trim().replace(/\s+/g,'');
+    const qDateRaw=(v[8]||'').trim();
+    if(qDateRaw)lastQDate=qDateRaw;
+    if(qOrder&&qOrder!=='OrderNumber'){
+      qerrius.push({order:qOrder,dateRaw:lastQDate||'',date:parseDate(lastQDate)});
+    }
+  }
+  return{ecomm,qerrius};
+}
+
+function parseDate(s){
+  if(!s)return null;
+  // handle ranges like "5/18-5/20" — use first date
+  const clean=s.split('-')[0].trim().replace(/[^0-9/]/g,'');
+  if(!clean)return null;
+  // M/D or M/D/YY format — add year if missing
+  const parts=clean.split('/');
+  if(parts.length===2){
+    const d=new Date(`${parts[0]}/${parts[1]}/2026`);
+    return isNaN(d)?null:d;
+  }
+  const d=new Date(clean);
+  return isNaN(d)?null:d;
+}
+
+// ---------- PARSE INVENTORY ----------
+// Qerrius:   SKUs, Sizes, Color, [date cols…]         (data from col 3)
+// Ecommerce: SKUs, Shopify Barcode, Sizes, Color, [date cols…] (data from col 4)
+function parseInventory(csv){
+  const lines=csv.trim().split('\n').filter(l=>l.trim());
+  if(lines.length<2)return[];
+  const hdrs=splitCSV(lines[0]).map(h=>h.trim().replace(/^"|"$/g,''));
+
+  // detect if there's a barcode/extra col between SKU and Sizes
+  // look for 'size' or 'sizes' in headers to find where SKU data ends
+  const skuIdx=0;
+  const sizeIdx=hdrs.findIndex(h=>/^sizes?$/i.test(h));
+  const colorIdx=hdrs.findIndex(h=>/^colou?r$/i.test(h));
+  const dataStartIdx=colorIdx+1; // date cols start after Color
+
+  const dateCols=hdrs.slice(dataStartIdx).filter(h=>h&&h.trim());
+
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const v=splitCSV(lines[i]).map(c=>c.trim().replace(/^"|"$/g,''));
+    const sku=v[skuIdx]||'';
+    const size=sizeIdx>=0?(v[sizeIdx]||''):'';
+    const color=colorIdx>=0?(v[colorIdx]||''):'';
+    if(!sku)continue;
+
+    const history={};
+    dateCols.forEach((d,idx)=>{
+      const raw=v[dataStartIdx+idx]||'';
+      const val=raw===''?null:parseInt(raw)||0;
+      if(d)history[d]=val;
+    });
+
+    // find latest date that has a non-null value
+    const dateKeys=Object.keys(history);
+    let latestDate='';
+    let currentStock=0;
+    for(let j=dateKeys.length-1;j>=0;j--){
+      if(history[dateKeys[j]]!==null){
+        latestDate=dateKeys[j];
+        currentStock=history[dateKeys[j]];
+        break;
+      }
+    }
+
+    // velocity: units dropped per day over available period (non-null values only)
+    const validEntries=dateKeys.filter(d=>history[d]!==null).map(d=>({d,v:history[d]}));
+    let velocity=0;
+    if(validEntries.length>=2){
+      const first=validEntries[0].v;
+      const last=validEntries[validEntries.length-1].v;
+      const days=validEntries.length-1;
+      velocity=days>0?Math.max(0,(first-last)/days):0;
+    }
+    rows.push({sku,size,color,history,dateCols:dateKeys,currentStock,latestDate,velocity});
+  }
+  return rows;
+}
+
+function splitCSV(l){
+  const r=[];let c='',q=false;
+  for(const ch of l){if(ch==='"'){q=!q;}else if(ch===','&&!q){r.push(c.trim());c='';}else{c+=ch;}}
+  r.push(c.trim());return r;
+}
+
+function populateColorFilter(){
+  const allColors=new Set([...qerrData,...ecommData].map(r=>r.color).filter(Boolean));
+  const sel=document.getElementById('color-filter');
+  sel.innerHTML='<option value="All">All colors</option>'+Array.from(allColors).sort().map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+// ---------- TABS ----------
+window.showTab=function(tab){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const tabs=['overview','qerrius','ecomm','fulfillment'];
+  const idx=tabs.indexOf(tab);
+  document.querySelectorAll('.tab')[idx]?.classList.add('active');
+  const fb=document.getElementById('filter-bar');
+  fb.style.display=(tab==='qerrius'||tab==='ecomm')?'flex':'none';
+  renderTab();
+}
+
+function applyFilters(){renderTab();}
+
+function renderTab(){
+  Object.values(CHARTS).forEach(c=>{try{c.destroy();}catch(e){}});CHARTS={};
+  const ct=document.getElementById('content');ct.innerHTML='';
+  if(activeTab==='overview')ct.appendChild(overviewSection());
+  else if(activeTab==='qerrius')ct.appendChild(inventorySection(qerrData,'Qerrius','#7F77DD'));
+  else if(activeTab==='ecomm')ct.appendChild(inventorySection(ecommData,'Ecommerce','#378ADD'));
+  else if(activeTab==='fulfillment')ct.appendChild(fulfillmentSection());
+}
+
+// ---------- OVERVIEW ----------
+function overviewSection(){
+  const el=document.createElement('div');
+  const totalQ=fulfillData.qerrius.length;
+  const totalE=fulfillData.ecomm.length;
+  const total=totalQ+totalE;
+
+  // fulfilled by date groups
+  const qByDate=groupByDate(fulfillData.qerrius);
+  const eByDate=groupByDate(fulfillData.ecomm);
+  const allDates=Array.from(new Set([...Object.keys(qByDate),...Object.keys(eByDate)])).sort();
+
+  // inventory alerts
+  const qZero=qerrData.filter(r=>r.currentStock===0).length;
+  const eZero=ecommData.filter(r=>r.currentStock===0).length;
+  const qLow=qerrData.filter(r=>r.currentStock>0&&r.currentStock<=10).length;
+  const eLow=ecommData.filter(r=>r.currentStock>0&&r.currentStock<=10).length;
+
+  // latest date snapshots
+  const qLatest=qerrData.length?qerrData[0].latestDate:'—';
+  const eLatest=ecommData.length?ecommData[0].latestDate:'—';
+
+  el.innerHTML=`
+    <div class="section">
+      <div class="section-title">Fulfillment overview</div>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-label">Total orders fulfilled</div><div class="metric-value">${total}</div><div class="metric-sub">Both channels</div></div>
+        <div class="metric"><div class="metric-label">Qerrius orders</div><div class="metric-value" style="color:var(--purple400)">${totalQ}</div></div>
+        <div class="metric"><div class="metric-label">Ecommerce orders</div><div class="metric-value" style="color:var(--blue400)">${totalE}</div></div>
+      </div>
+    </div>
+
+  return el;
+}
+
+function groupByDate(orders){
+  const m={};
+  orders.forEach(o=>{
+    const k=o.dateRaw||'';
+    if(!k)return;
+    m[k]=(m[k]||0)+1;
+  });
+  return m;
+}
+
+function getUniqueDates(orders){
+  const s=new Set();
+  orders.forEach(o=>{if(o.dateRaw)s.add(o.dateRaw);});
+  // sort by parsing as dates but return original raw strings
+  return Array.from(s).sort((a,b)=>{
+    const da=parseDate(a),db=parseDate(b);
+    if(!da&&!db)return 0;if(!da)return 1;if(!db)return-1;
+    return da-db;
+  });
+}
+
+function stockSummaryMini(data){
+  const total=data.length;
+  const zero=data.filter(r=>r.currentStock===0).length;
+  const low=data.filter(r=>r.currentStock>0&&r.currentStock<=10).length;
+  const ok=data.filter(r=>r.currentStock>10).length;
+  const totalUnits=data.reduce((s,r)=>s+r.currentStock,0);
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px"><div style="font-size:11px;color:var(--text2)">Total SKUs</div><div style="font-size:18px;font-weight:500">${total}</div></div>
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:10px 12px"><div style="font-size:11px;color:var(--text2)">Total units</div><div style="font-size:18px;font-weight:500">${totalUnits.toLocaleString()}</div></div>
+    <div style="background:var(--red50);border-radius:var(--radius);padding:10px 12px"><div style="font-size:11px;color:var(--red800)">Zero stock</div><div style="font-size:18px;font-weight:500;color:var(--red400)">${zero}</div></div>
+    <div style="background:var(--amber50);border-radius:var(--radius);padding:10px 12px"><div style="font-size:11px;color:var(--amber800)">Low stock</div><div style="font-size:18px;font-weight:500;color:var(--amber400)">${low}</div></div>
+  </div>`;
+}
+
+// ---------- INVENTORY SECTION ----------
+function inventorySection(data,label,color){
+  const el=document.createElement('div');
+  const search=(document.getElementById('sku-search')?.value||'').toLowerCase();
+  const colorF=document.getElementById('color-filter')?.value||'All';
+  const stockF=document.getElementById('stock-filter')?.value||'All';
+  const latestDate=data.length?data[0].latestDate:'—';
+  const maxStock=Math.max(...data.map(r=>r.currentStock),1);
+
+  let filtered=data.filter(r=>{
+    if(search&&!r.sku.toLowerCase().includes(search)&&!r.size.toLowerCase().includes(search))return false;
+    if(colorF!=='All'&&r.color!==colorF)return false;
+    if(stockF==='zero'&&r.currentStock!==0)return false;
+    if(stockF==='low'&&!(r.currentStock>0&&r.currentStock<=10))return false;
+    if(stockF==='ok'&&r.currentStock<=10)return false;
+    return true;
+  });
+
+  const totalUnits=filtered.reduce((s,r)=>s+r.currentStock,0);
+  const zeroCount=filtered.filter(r=>r.currentStock===0).length;
+  const lowCount=filtered.filter(r=>r.currentStock>0&&r.currentStock<=10).length;
+
+  // top movers by velocity
+  const topMovers=[...filtered].filter(r=>r.velocity>0).sort((a,b)=>b.velocity-a.velocity).slice(0,5);
+
+  el.innerHTML=`
+    <div class="section">
+      <div class="section-title">${label} inventory · as of ${latestDate}</div>
+      <div class="metric-grid">
+        <div class="metric"><div class="metric-label">SKUs shown</div><div class="metric-value">${filtered.length}</div><div class="metric-sub">of ${data.length} total</div></div>
+        <div class="metric"><div class="metric-label">Total units</div><div class="metric-value">${totalUnits.toLocaleString()}</div></div>
+        <div class="metric"><div class="metric-label">Zero stock</div><div class="metric-value bad">${zeroCount}</div></div>
+        <div class="metric"><div class="metric-label">Low stock (≤10)</div><div class="metric-value warn">${lowCount}</div></div>
+      </div>
+
+      ${zeroCount>0?`<div class="card" style="border-color:var(--red400);margin-bottom:16px">
+        <div style="padding:14px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="font-size:12px;font-weight:500;color:var(--red800)">⚠ Zero stock alerts (${filtered.filter(r=>r.currentStock===0).length})</div>
+          <input type="text" placeholder="Search alerts…" id="zero-search-${label}" oninput="filterZeroList('${label}')"
+            style="padding:5px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;width:180px">
+        </div>
+        <div id="zero-list-${label}" style="max-height:240px;overflow-y:auto">
+          ${filtered.filter(r=>r.currentStock===0).map(r=>`
+            <div class="zero-item" data-sku="${r.sku.toLowerCase()} ${r.size.toLowerCase()} ${r.color.toLowerCase()}"
+              style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:0.5px solid var(--border)">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--red400);flex-shrink:0"></span>
+              <span style="flex:1;font-size:13px">${r.sku}</span>
+              <span style="font-size:12px;color:var(--text2);background:var(--bg2);padding:2px 8px;border-radius:20px">${r.size}</span>
+              <span style="font-size:12px;color:var(--text2);background:var(--bg2);padding:2px 8px;border-radius:20px">${r.color}</span>
+              <span class="bad" style="font-size:12px;font-weight:500">0 units</span>
+            </div>`).join('')}
+        </div>
+      </div>`:''}
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:12px;color:var(--text2)">${filtered.length} SKUs</div>
+        <input type="text" placeholder="Search SKUs…" id="sku-inline-${label}" oninput="filterSkuTable('${label}')"
+          style="padding:5px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:12px;width:200px">
+      </div>
+      <div class="card"><div class="table-wrap" style="max-height:360px;overflow-y:auto"><table id="sku-table-${label}">
+        <thead><tr><th>SKU</th><th>Size</th><th>Color</th><th>Current stock</th></tr></thead>
+        <tbody>${filtered.map(r=>{
+          const sc=r.currentStock===0?'stock-zero':r.currentStock<=10?'stock-low':'stock-ok';
+          return`<tr data-sku="${r.sku.toLowerCase()} ${r.size.toLowerCase()} ${r.color.toLowerCase()}">
+            <td>${r.sku}</td>
+            <td>${r.size||'—'}</td>
+            <td>${r.color||'—'}</td>
+            <td class="${sc}">${r.currentStock}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div></div>
+    </div>`;
+
+  setTimeout(()=>{},80);
+  return el;
+}
+
+// ---------- FULFILLMENT LOG ----------
+function fulfillmentSection(){
+  const el=document.createElement('div');
+  const allOrders=[
+    ...fulfillData.ecomm.map(o=>({...o,channel:'Ecommerce'})),
+    ...fulfillData.qerrius.map(o=>({...o,channel:'Qerrius'}))
+  ].sort((a,b)=>{
+    const da=parseDate(a.dateRaw),db=parseDate(b.dateRaw);
+    if(!da&&!db)return 0;
+    if(!da)return 1;if(!db)return-1;
+    return db-da;
+  });
+  el.innerHTML=`
+    <div class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div class="section-title" style="margin-bottom:0">All fulfilled orders (${allOrders.length} total)</div>
+        <input type="text" placeholder="Search order #, channel, date…" id="fulfillment-search"
+          oninput="filterFulfillmentTable()"
+          style="padding:6px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:13px;width:240px">
+      </div>
+      <div class="card"><div class="table-wrap" style="max-height:480px;overflow-y:auto"><table id="fulfillment-table">
+        <thead><tr><th>Order #</th><th>Channel</th><th>Date sent</th></tr></thead>
+        <tbody>${allOrders.map(o=>`<tr data-search="${o.order.toLowerCase()} ${o.channel.toLowerCase()} ${(o.dateRaw||'').toLowerCase()}">
+          <td><strong>${o.order}</strong></td>
+          <td><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:11px;background:${o.channel==='Ecommerce'?'var(--blue50)':'var(--purple50)'};color:${o.channel==='Ecommerce'?'var(--blue800)':'var(--purple800)'}">${o.channel}</span></td>
+          <td>${o.dateRaw||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div></div>
+    </div>`;
+  return el;
+}
+
+window.filterFulfillmentTable=function(){
+  const q=(document.getElementById('fulfillment-search')?.value||'').toLowerCase().trim();
+  document.querySelectorAll('#fulfillment-table tbody tr').forEach(row=>{
+    row.style.display=!q||row.dataset.search.includes(q)?'':'none';
+  });
+}
+
+window.filterZeroList=function(label){
+  const q=(document.getElementById('zero-search-'+label)?.value||'').toLowerCase().trim();
+  document.querySelectorAll('#zero-list-'+label+' .zero-item').forEach(item=>{
+    item.style.display=!q||item.dataset.sku.includes(q)?'':'none';
+  });
+}
+
+window.filterSkuTable=function(label){
+  const q=(document.getElementById('sku-inline-'+label)?.value||'').toLowerCase().trim();
+  document.querySelectorAll('#sku-table-'+label+' tbody tr').forEach(row=>{
+    row.style.display=!q||row.dataset.sku.includes(q)?'':'none';
+  });
+}
+
+fetchAll();
+</script>
+</body>
+</html>
